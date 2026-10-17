@@ -3,8 +3,8 @@ import os
 import json
 import torch
 import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer
 from types import SimpleNamespace
+from teacher_loading import load_teacher_model, load_teacher_tokenizer
 
 # Глобальный словарь для временного хранения активаций слоя q_proj при расчете LRP
 query_activation_data = {}
@@ -232,14 +232,14 @@ def layer_removal(model, prune_list):
 # ==========================================
 if __name__ == '__main__':
     # Чтение единого конфигурационного файла
-    with open("config.yaml", "r") as f:
+    with open("config.yaml", "r", encoding="utf-8") as f:
         config_dict = yaml.safe_load(f)
     args = SimpleNamespace(**config_dict)
 
     # Загрузка оригинальной модели (Учителя) в половинной точности
     print(f"Загрузка модели из {args.teacher_model_path}...")
-    model = AutoModelForCausalLM.from_pretrained(args.teacher_model_path, torch_dtype=torch.float16, device_map="cuda")
-    tokenizer = AutoTokenizer.from_pretrained(args.teacher_model_path, model_max_length=512)
+    model = load_teacher_model(args, torch_dtype=torch.float16, device="cuda")
+    tokenizer = load_teacher_tokenizer(args, model_max_length=512)
 
     print("Загрузка данных для оценки...")
     dataset_cut = load_local_dataset(args.local_train_file, max_lines=100)

@@ -2,6 +2,12 @@
 # 1. ОБЩИЕ ПУТИ И ДАННЫЕ
 # ==========================================
 teacher_model_path: "Qwen/Qwen3-0.6B-Base"  # Откуда берем оригинальную модель
+# Локально: "D:/models/teacher" (включая sharded safetensors)
+# или "D:/models/teacher/model.safetensors" (полный файл весов Transformers).
+# Для отдельного файла config.json и токенизатор по умолчанию ищутся рядом.
+teacher_config_path: null                  # Другая папка/config.json или ID модели с нужной архитектурой
+teacher_tokenizer_path: null               # Другая папка или ID совместимого токенизатора
+teacher_local_files_only: false            # true запрещает скачивание, в том числе для ID моделей
 student_model_path: "./pruned_model"        # Куда сохраняем обрезанную модель
 use_local_data: true                        # Использовать ли локальные JSON-файлы
 local_train_file: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd/ru_simple_gsd_conll_short_train.json      # Данные для расчета важности слоев и обучения

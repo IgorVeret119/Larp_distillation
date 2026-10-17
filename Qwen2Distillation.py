@@ -31,6 +31,7 @@ from torch.utils.data import Dataset
 import yaml
 from types import SimpleNamespace
 from transformers import AutoModelForCausalLM, AutoConfig
+from teacher_loading import load_teacher_config, load_teacher_model, load_teacher_tokenizer
 
 class TokenizedDataset(Dataset):
     def __init__(self, texts, tokenizer, max_length):
@@ -53,7 +54,10 @@ class Qwen2ForDistillation(Qwen2ForCausalLM):
         config,
         norm_factor,
         num_loss_layers: int,      # [ДОБАВЛЕНО] Количество слоев, по которым мы будем считать ошибку (MSE)
-        teacher_mapping: list      # [ДОБАВЛЕНО] Готовый список, показывающий, какие слои учителя остались
+        teacher_mapping: list,     # [ДОБАВЛЕНО] Готовый список, показывающий, какие слои учителя остались
+        teacher_config_path: Optional[str] = None,
+        teacher_tokenizer_path: Optional[str] = None,
+        teacher_local_files_only: bool = False,
     ):
         super().__init__(config)
 
@@ -66,9 +70,14 @@ class Qwen2ForDistillation(Qwen2ForCausalLM):
         # Задаем обучаемые слои (в данном пайплайне обучаются все оставшиеся слои студента)
         self.distil_layers = teacher_mapping
 
-        self.teacher = AutoModelForCausalLM.from_pretrained(
-            teacher_model_path,
-            torch_dtype=torch.bfloat16
+        self.teacher = load_teacher_model(
+            SimpleNamespace(
+                teacher_model_path=teacher_model_path,
+                teacher_config_path=teacher_config_path,
+                teacher_tokenizer_path=teacher_tokenizer_path,
+                teacher_local_files_only=teacher_local_files_only,
+            ),
+            torch_dtype=torch.bfloat16,
         )
 
         # Замораживаем веса учителя — он только выдает эталонные ответы (logits) и скрытые состояния
@@ -236,7 +245,7 @@ class LossAverageCallback(TrainerCallback):
 
 
 def main(args):
-    config = AutoConfig.from_pretrained(args.teacher_model_path)
+    config = load_teacher_config(args)
 
     # [ДОБАВЛЕНО] Автоматическое чтение файла pruned_info.json.
     # Это позволяет скрипту дистилляции точно знать, какие слои вырезал auto_prune.py,
@@ -250,7 +259,7 @@ def main(args):
         raise FileNotFoundError("pruned_info.json не найден! Сначала запустите auto_prune.py")
 
     # [ДОБАВЛЕНО] Автоматически генерируем карту слоев (массив индексов учителя, которые не были удалены)
-    original_num_layers = AutoConfig.from_pretrained(args.teacher_model_path).num_hidden_layers
+    original_num_layers = config.num_hidden_layers
     teacher_mapping = [i for i in range(original_num_layers) if i not in removed_layers]
 
     # [ИЗМЕНЕНО] Передаем новые параметры в класс модели
@@ -260,10 +269,13 @@ def main(args):
         config=config,
         norm_factor=args.norm_factor, 
         num_loss_layers=args.num_loss_layers, # Количество точек замера MSE из конфига
-        teacher_mapping=teacher_mapping       # Готовая карта слоев
+        teacher_mapping=teacher_mapping,      # Готовая карта слоев
+        teacher_config_path=getattr(args, "teacher_config_path", None),
+        teacher_tokenizer_path=getattr(args, "teacher_tokenizer_path", None),
+        teacher_local_files_only=getattr(args, "teacher_local_files_only", False),
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(args.teacher_model_path)
+    tokenizer = load_teacher_tokenizer(args)
 
     # [ИЗМЕНЕНО] Избавляемся от жестко зашитых путей (хардкода).
     # Теперь скрипт послушно берет пути из config.yaml.
