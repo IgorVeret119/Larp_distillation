@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import yaml
 
 def run_step(command, step_name):
     print(f"Запуск этапа: {step_name}")
@@ -12,13 +13,21 @@ def run_step(command, step_name):
     print(f"\nЭтап '{step_name}' успешно завершен.")
 
 if __name__ == '__main__':
+    with open("config.yaml", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    if config.get("merge_adapter", False):
+        run_step(
+            command=[sys.executable, "merge_adapter.py"],
+            step_name="Объединение адаптера с базовой моделью"
+        )
+
     run_step(
-        command=["python", "auto_prune.py"], 
+        command=[sys.executable, "auto_prune.py"], 
         step_name="Анализ и обрезка модели"
     )
 
     run_step(
-        command=["python", "Qwen2Distillation.py"], 
+        command=[sys.executable, "Qwen2Distillation.py"], 
         step_name="Дистилляция (дообучение)"
     )
 

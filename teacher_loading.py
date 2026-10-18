@@ -31,11 +31,12 @@ def _local_only(args, source):
     return bool(getattr(args, "teacher_local_files_only", False)) or Path(source).exists()
 
 
-def load_teacher_config(args):
+def load_teacher_config(args, revision=None):
     source = _resource_source(args, "teacher_config_path")
     try:
         return AutoConfig.from_pretrained(
-            source, local_files_only=_local_only(args, source)
+            source, local_files_only=_local_only(args, source),
+            **({"revision": revision} if revision else {}),
         )
     except OSError as exc:
         raise OSError(
@@ -59,9 +60,9 @@ def load_teacher_tokenizer(args, **kwargs):
         ) from exc
 
 
-def load_teacher_model(args, torch_dtype, device=None):
+def load_teacher_model(args, torch_dtype, device=None, revision=None):
     path = _teacher_path(args)
-    config = load_teacher_config(args)
+    config = load_teacher_config(args, revision=revision)
     if path.is_file():
         # load_model understands shared/tied weights omitted by save_pretrained.
         model = AutoModelForCausalLM.from_config(config, torch_dtype=torch_dtype)
@@ -81,6 +82,7 @@ def load_teacher_model(args, torch_dtype, device=None):
             config=config,
             torch_dtype=torch_dtype,
             local_files_only=_local_only(args, source),
+            **({"revision": revision} if revision else {}),
         )
     if device is not None:
         model.to(device)

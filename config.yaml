@@ -8,6 +8,11 @@ teacher_model_path: "Qwen/Qwen3-0.6B-Base"  # Откуда берем ориги
 teacher_config_path: null                  # Другая папка/config.json или ID модели с нужной архитектурой
 teacher_tokenizer_path: null               # Другая папка или ID совместимого токенизатора
 teacher_local_files_only: false            # true запрещает скачивание, в том числе для ID моделей
+# Объединение PEFT/LoRA-адаптера с базовой моделью перед обрезкой и дистилляцией:
+merge_adapter: false                       # true добавляет этап объединения в main.py
+adapter_model_path: null                   # Папка с adapter_config.json и adapter_model.safetensors
+adapter_base_model_path: null              # null: база из adapter_config.json; иначе папка/ID/полный safetensors
+merged_teacher_path: "./teacher_merged"     # Пустая/новая папка для полной модели; станет учителем при merge_adapter: true
 student_model_path: "./pruned_model"        # Куда сохраняем обрезанную модель
 use_local_data: true                        # Использовать ли локальные JSON-файлы
 local_train_file: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd/ru_simple_gsd_conll_short_train.json      # Данные для расчета важности слоев и обучения

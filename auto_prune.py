@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from types import SimpleNamespace
 from teacher_loading import load_teacher_model, load_teacher_tokenizer
+from teacher_settings import resolve_teacher_args
 
 # Глобальный словарь для временного хранения активаций слоя q_proj при расчете LRP
 query_activation_data = {}
@@ -234,7 +235,7 @@ if __name__ == '__main__':
     # Чтение единого конфигурационного файла
     with open("config.yaml", "r", encoding="utf-8") as f:
         config_dict = yaml.safe_load(f)
-    args = SimpleNamespace(**config_dict)
+    args = resolve_teacher_args(SimpleNamespace(**config_dict))
 
     # Загрузка оригинальной модели (Учителя) в половинной точности
     print(f"Загрузка модели из {args.teacher_model_path}...")

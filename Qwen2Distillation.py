@@ -32,6 +32,7 @@ import yaml
 from types import SimpleNamespace
 from transformers import AutoModelForCausalLM, AutoConfig
 from teacher_loading import load_teacher_config, load_teacher_model, load_teacher_tokenizer
+from teacher_settings import resolve_teacher_args
 
 class TokenizedDataset(Dataset):
     def __init__(self, texts, tokenizer, max_length):
@@ -245,6 +246,7 @@ class LossAverageCallback(TrainerCallback):
 
 
 def main(args):
+    args = resolve_teacher_args(args)
     config = load_teacher_config(args)
 
     # [ДОБАВЛЕНО] Автоматическое чтение файла pruned_info.json.
