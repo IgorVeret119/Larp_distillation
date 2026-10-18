@@ -6,6 +6,7 @@ import numpy as np
 from types import SimpleNamespace
 from teacher_loading import load_teacher_model, load_teacher_tokenizer
 from teacher_settings import resolve_teacher_args
+from data_loading import load_local_dataset
 
 # Глобальный словарь для временного хранения активаций слоя q_proj при расчете LRP
 query_activation_data = {}
@@ -13,25 +14,6 @@ query_activation_data = {}
 # ==========================================
 # 1. Загрузка данных
 # ==========================================
-def load_local_dataset(file_path, max_lines=100):
-    """
-    Считывает локальный JSON-файл построчно. 
-    Используется для быстрой загрузки небольшой части датасета (калибровки), 
-    чтобы прогнать её через модель и измерить отклики слоев.
-    """
-    documents = []
-    with open(file_path, 'r', encoding='utf-8') as f:
-        for i, line in enumerate(f):
-            if i >= max_lines: # Ограничиваем количество строк для экономии времени и памяти
-                break
-            try:
-                record = json.loads(line)
-                if 'text' in record:
-                    documents.append(record['text'].strip())
-            except json.JSONDecodeError:
-                continue
-    return documents
-
 # ==========================================
 # 2. Метрика BI (Block Importance)
 # ==========================================
@@ -237,13 +219,17 @@ if __name__ == '__main__':
         config_dict = yaml.safe_load(f)
     args = resolve_teacher_args(SimpleNamespace(**config_dict))
 
+    print("Загрузка данных для оценки...")
+    dataset_cut = load_local_dataset(
+        args.local_train_file, max_lines=100,
+        text_field=getattr(args, "dataset_text_field", "text"),
+    )
+    print(f"Загружено текстов для оценки: {len(dataset_cut)}")
+
     # Загрузка оригинальной модели (Учителя) в половинной точности
     print(f"Загрузка модели из {args.teacher_model_path}...")
     model = load_teacher_model(args, torch_dtype=torch.float16, device="cuda")
     tokenizer = load_teacher_tokenizer(args, model_max_length=512)
-
-    print("Загрузка данных для оценки...")
-    dataset_cut = load_local_dataset(args.local_train_file, max_lines=100)
 
     print(f"Анализ важности слоев (метрика {args.loss_type})...")
     

@@ -33,6 +33,7 @@ from types import SimpleNamespace
 from transformers import AutoModelForCausalLM, AutoConfig
 from teacher_loading import load_teacher_config, load_teacher_model, load_teacher_tokenizer
 from teacher_settings import resolve_teacher_args
+from data_loading import load_local_dataset
 
 class TokenizedDataset(Dataset):
     def __init__(self, texts, tokenizer, max_length):
@@ -247,6 +248,15 @@ class LossAverageCallback(TrainerCallback):
 
 def main(args):
     args = resolve_teacher_args(args)
+    # Validate local data before allocating teacher and student weights.
+    if args.use_local_data:
+        text_field = getattr(args, "dataset_text_field", "text")
+        train = load_local_dataset(
+            args.local_train_file, max_lines=getattr(args, "ds_frac", None),
+            text_field=text_field,
+        )
+        val = load_local_dataset(args.local_val_file, max_lines=3000, text_field=text_field)
+        print(f"Загружено текстов: обучение — {len(train)}, валидация — {len(val)}")
     config = load_teacher_config(args)
 
     # [ДОБАВЛЕНО] Автоматическое чтение файла pruned_info.json.
@@ -282,26 +292,6 @@ def main(args):
     # [ИЗМЕНЕНО] Избавляемся от жестко зашитых путей (хардкода).
     # Теперь скрипт послушно берет пути из config.yaml.
     if args.use_local_data:
-        train_file = args.local_train_file
-        val_file = args.local_val_file
-
-        def load_local_dataset(file_path, max_lines=10000000):
-            documents = []
-            with open(file_path, 'r', encoding='utf-8') as f:
-                for i, line in enumerate(f):
-                    if i >= max_lines:
-                        break
-                    try:
-                        record = json.loads(line)
-                        if 'text' in record:
-                            documents.append(record['text'].strip())
-                    except json.JSONDecodeError:
-                        continue
-            return documents
-
-        # Используем getattr для безопасного извлечения параметра (если его забыли указать в конфиге)
-        train = load_local_dataset(train_file, max_lines=getattr(args, 'ds_frac', float('inf')))
-        val = load_local_dataset(val_file, max_lines=3000)
         train_dataset = TokenizedDataset(train, tokenizer, args.maxlen)
         val_dataset = TokenizedDataset(val, tokenizer, args.maxlen)
 

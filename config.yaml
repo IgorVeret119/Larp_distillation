@@ -15,6 +15,7 @@ adapter_base_model_path: null              # null: база из adapter_config.
 merged_teacher_path: "./teacher_merged"     # Пустая/новая папка для полной модели; станет учителем при merge_adapter: true
 student_model_path: "./pruned_model"        # Куда сохраняем обрезанную модель
 use_local_data: true                        # Использовать ли локальные JSON-файлы
+dataset_text_field: "text"                 # Поле со строкой текста в JSON-массиве или JSONL
 local_train_file: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd/ru_simple_gsd_conll_short_train.json      # Данные для расчета важности слоев и обучения
 local_val_file: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd/ru_simple_gsd_conll_short_test.json           # Данные для валидации
 
