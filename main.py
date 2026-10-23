@@ -31,4 +31,10 @@ if __name__ == '__main__':
         step_name="Дистилляция (дообучение)"
     )
 
+    if config.get("distribution_comparison", {}).get("enabled", False):
+        run_step(
+            command=[sys.executable, "compare_distributions.py"],
+            step_name="Сравнение распределений и сохранение графиков"
+        )
+
     print("\nМодель готова.")

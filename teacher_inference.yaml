@@ -1,0 +1,31 @@
+# For syntax_finetuning/src/inference.py, not the distillation training config.
+# Gold answers in this test dataset are GRCT; this adapter was trained to output conll_short.
+dataset_config:
+  train_file_path: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd_grct_test/test_grct_train.json
+  dev_file_path: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd_grct_test/test_grct_dev.json
+  test_file_path: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd_grct_test/test_grct_test.json
+  conll_test_file_path: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd_grct_test/test_conll_test.conllu
+  treebank_repr: grct
+  treebank: gsd_test_grct
+
+inference_models:
+  - original_model_id: Qwen/Qwen3-0.6B-Base
+    peft_model_id: /content/drive/MyDrive/my_adapter
+    is_instruct: true
+    representation_type_result: conll_short
+    name: Qwen3-teacher
+    model_library: vllm
+    max_tokens: 1024
+
+# Use a fresh result folder: the runner skips records already written to an existing file.
+root_output_dir_path: /content/results/teacher_chat_conll_short/
+
+inference:
+  seed:
+    - 1000
+    - 2000
+  model_parameters:
+    - model_name: Qwen3-teacher
+  treebank_parameters:
+    - treebank_name: gsd_test_grct
+      index_finish: 30

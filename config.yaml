@@ -53,3 +53,23 @@ logging_dir: "./logs"                       # Папка для графиков
 logging_steps: 1
 eval_steps: 50
 save_steps: 512
+
+# Отдельная оценка: python compare_distributions.py (обучение не запускается).
+# Учитель берётся из teacher_model_path или merged_teacher_path при merge_adapter: true.
+distribution_comparison:
+  enabled: true                           # Автоматически после дистилляции в main.py
+  test_file: /content/syntax_finetuning/src/data/dataset_simple_rel/gsd/ru_simple_gsd_conll_short_test.json
+  prompt_template: chat                    # chat соответствует is_instruct: true исходного адаптера
+  append_eos: true                         # Использовать EOS сохранённого токенизатора, включая legacy ID 2
+  max_examples: null                       # null = вся выборка; для пробного запуска можно 10
+  max_length: 2048                         # Запрос + ответ; слишком длинные примеры вызывают ошибку
+  device: auto                            # auto, cuda или cpu
+  output_file: ./comparison_results/distribution_comparison.json
+  save_histograms: true
+  top_k: 10                               # Для диаграмм вероятностей; сами метрики по полному словарю
+  snapshot_positions: 3                   # Первые позиции ответа первого тестового примера
+  models: null                            # Автоматически student_model_path и output_dir/student
+  # Для уже сохранённых моделей вместо null:
+  # models:
+  #   - name: distilled
+  #     path: /content/drive/MyDrive/small_distilled_model
